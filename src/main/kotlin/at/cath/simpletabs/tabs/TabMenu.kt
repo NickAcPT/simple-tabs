@@ -3,7 +3,6 @@ package at.cath.simpletabs.tabs
 import at.cath.simpletabs.TabsMod
 import at.cath.simpletabs.gui.ChatTabScreen
 import at.cath.simpletabs.mixins.MixinHudUtility
-import at.cath.simpletabs.translate.RetrofitDeepl
 import at.cath.simpletabs.utility.SimpleColour
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -86,79 +85,6 @@ class TabMenu(var client: MinecraftClient, serialized: String? = null) : ChatHud
                     if (repeatCount > 0) it.messages.removeLast()
                     it.messages += incoming
 
-                }
-            }
-        }
-    }
-
-    fun handleClickTranslation(x: Double, y: Double) {
-        val msgIndices = getLocalChatIndicesAt(x, y)
-
-        if (msgIndices != null) {
-            val (indexText, indexVisible) = msgIndices
-            val tab = getSelectedTab()!!
-
-            // don't translate when tab is not set to
-            if (tab.language.targetLanguage.isEmpty()) {
-                return
-            }
-
-            val incoming = localMessageHistory[indexText].content
-
-            // don't translate if already translated
-            if (incoming is TranslatableTextContent && incoming.key == "chat.simpletabs.translated") {
-                return
-            }
-
-            CoroutineScope(Dispatchers.IO).launch {
-                val response = RetrofitDeepl.api.getTranslation(incoming.string, tab.language.targetLanguage)
-                if (response.isSuccessful) {
-                    val translation = Text.of(response.body()!!.translations[0].translatedText)
-                    val formattedTranslation =
-                        Text.translatable(
-                            "chat.simpletabs.translated",
-                            tab.language.targetLanguage.uppercase(),
-                            translation
-                        ).setStyle(Style.EMPTY.withColor(SimpleColour(128, 27, 87, 255).packedRgb))
-                    
-                    val chatWidth = MathHelper.floor(this@TabMenu.width.toDouble() / this@TabMenu.chatScale)
-
-                    val lineBreakTranslation = ChatMessages.breakRenderedChatMessageLines(
-                        formattedTranslation,
-                        chatWidth,
-                        this@TabMenu.client.textRenderer
-                    )
-
-                    val lineBreakIncoming = ChatMessages.breakRenderedChatMessageLines(
-                        incoming,
-                        chatWidth,
-                        this@TabMenu.client.textRenderer
-                    )
-
-                    for ((idx, msgIdx) in (indexVisible downTo (indexVisible - lineBreakTranslation.size + 1).coerceAtMost(
-                        indexVisible - lineBreakIncoming.size + 1
-                    )).withIndex()) {
-                        if (msgIdx < 0) {
-                            visibleMessages.add(
-                                0,
-                                ChatHudLine.Visible(client.inGameHud.ticks, lineBreakTranslation[idx], null, false)
-                            )
-
-                        } else if (idx >= lineBreakTranslation.size) {
-                            visibleMessages.removeAt(msgIdx)
-                        } else if (idx < lineBreakIncoming.size) {
-                            visibleMessages[msgIdx] = ChatHudLine.Visible(client.inGameHud.ticks, lineBreakTranslation[idx], null, false)
-                        } else {
-                            visibleMessages.add(
-                                msgIdx + 1,
-                                ChatHudLine.Visible(client.inGameHud.ticks, lineBreakTranslation[idx], null, false)
-                            )
-                        }
-                    }
-
-                    localMessageHistory[indexText] = ChatHudLine(client.inGameHud.ticks, formattedTranslation, null, null)
-                } else {
-                    TabsMod.logger.error("Encountered error code ${response.code()} when fetching translation: ${response.message()}")
                 }
             }
         }

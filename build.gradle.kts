@@ -33,17 +33,6 @@ dependencies {
 
     // 3rd party mods, UI
     modImplementation(include("io.github.cottonmc", "LibGui", libGuiVersion))
-
-    // Web libs
-    val okhttpVersion: String by project
-    implementation(include("com.squareup.okhttp3", "okhttp", okhttpVersion))
-    implementation(include("com.squareup.okhttp3", "logging-interceptor", okhttpVersion))
-    val retrofitVersion: String by project
-    implementation(include("com.squareup.retrofit2", "retrofit", retrofitVersion))
-    val ktConverterVersion: String by project
-    implementation(include("com.jakewharton.retrofit", "retrofit2-kotlinx-serialization-converter", ktConverterVersion))
-    val okioVersion: String by project
-    implementation(include("com.squareup.okio", "okio-jvm", okioVersion))
 }
 
 tasks {
