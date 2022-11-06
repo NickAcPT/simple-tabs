@@ -9,7 +9,7 @@ import net.minecraft.text.Text
 import kotlin.properties.Delegates
 
 class ChatTabScreen(originalChatText: String?) : ChatScreen(originalChatText) {
-    private val componentPadding = 5
+    private val componentPadding = 1
     private val cornerOffset = 2
     private val elementOffset = 2
 
