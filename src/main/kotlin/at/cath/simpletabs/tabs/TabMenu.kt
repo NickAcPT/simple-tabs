@@ -1,25 +1,15 @@
 package at.cath.simpletabs.tabs
 
 import at.cath.simpletabs.TabsMod
-import at.cath.simpletabs.gui.ChatTabScreen
 import at.cath.simpletabs.mixins.MixinHudUtility
-import at.cath.simpletabs.utility.SimpleColour
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.hud.ChatHud
-import net.minecraft.client.gui.hud.ChatHudLine
-import net.minecraft.client.option.ChatVisibility
-import net.minecraft.client.util.ChatMessages
 import net.minecraft.text.Style
 import net.minecraft.text.Text
 import net.minecraft.text.TranslatableTextContent
 import net.minecraft.util.Formatting
-import net.minecraft.util.math.MathHelper
-import java.util.*
 import kotlin.math.min
 
 
@@ -58,7 +48,7 @@ class TabMenu(var client: MinecraftClient, serialized: String? = null) : ChatHud
             tabMap.values.forEach {
                 var repeatCount = 0
                 if (it.acceptsMessage(message.string)) {
-                    val incoming = message.copyContentOnly()
+                    val incoming = message.copy()
 
                     if (it.messages.isNotEmpty()) {
                         val (extractedMsg, repeats) = extractRepeatMsg(it.messages.last())
@@ -187,7 +177,7 @@ class TabMenu(var client: MinecraftClient, serialized: String? = null) : ChatHud
                 val lastComponent = find { it is TranslatableTextContent && it.key == "chat.simpletabs.repeat" }
                 if (lastComponent != null) {
                     val repeatCount = lastComponent.string.filter(Char::isDigit).toInt() - 1
-                    val extractedMsg = msg.copyContentOnly()
+                    val extractedMsg = msg.copy()
                     extractedMsg.siblings.removeIf { it == lastComponent }
                     return Pair(extractedMsg, repeatCount)
                 }
@@ -206,54 +196,4 @@ class TabMenu(var client: MinecraftClient, serialized: String? = null) : ChatHud
         return this
     }
 
-    private fun getLocalChatIndicesAt(x: Double, y: Double): Pair<Int, Int>? {
-        return if (client.currentScreen is ChatTabScreen && !this.client.options.hudHidden && client.options.chatVisibility.value != ChatVisibility.HIDDEN) {
-            var d = x - 2.0
-            var e = this.client.window.scaledHeight.toDouble() - y - 40.0
-            d = MathHelper.floor(d / this.chatScale).toDouble()
-            e = MathHelper.floor(e / (this.chatScale * (this.client.options.chatLineSpacing.value + 1.0))).toDouble()
-            if (d >= 0.0 && e >= 0.0) {
-                val i = this.visibleLineCount.coerceAtMost(visibleMessages.size)
-                if (d <= MathHelper.floor(this.width.toDouble() / this.chatScale).toDouble()) {
-                    Objects.requireNonNull(this.client.textRenderer)
-                    if (e < (9 * i + i).toDouble()) {
-                        Objects.requireNonNull(this.client.textRenderer)
-                        var indexVisibleMsg = (e / 9.0 + (this as MixinHudUtility).scrolledLines.toDouble()).toInt()
-                        if (indexVisibleMsg >= 0 && indexVisibleMsg < visibleMessages.size) {
-                            var sumVisibleMsgs = 0
-                            var countWholeMsgs = 0
-
-                            for ((idx, msg) in localMessageHistory.withIndex()) {
-                                val increase = countRenderedMessageSplits(msg.content)
-
-                                val lookAhead = sumVisibleMsgs + (increase - 1)
-                                if (lookAhead >= indexVisibleMsg) {
-                                    countWholeMsgs = idx
-                                    // multi-line message; correct the index to point to the start of the message
-                                    if (lookAhead > indexVisibleMsg) {
-                                        indexVisibleMsg += (increase - 1 + (sumVisibleMsgs - indexVisibleMsg))
-                                    }
-                                    break
-                                }
-                                sumVisibleMsgs += increase
-                            }
-                            return Pair(countWholeMsgs, indexVisibleMsg)
-                        }
-                    }
-                }
-                null
-            } else {
-                null
-            }
-        } else {
-            null
-        }
-    }
-
-    private fun countRenderedMessageSplits(text: Text): Int {
-        var count = 0
-        client.textRenderer.textHandler
-            .wrapLines(text, width, Style.EMPTY) { _, _ -> count++ }
-        return count
-    }
 }
